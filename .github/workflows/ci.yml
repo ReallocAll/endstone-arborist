@@ -69,3 +69,18 @@ jobs:
           name: endstone-arborist-${{ matrix.python-version }}
           path: dist/*.whl
           if-no-files-found: error
+
+  inspect-previous-annotations:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - name: Inspect previous check-run annotations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for job_id in 114203973388 114203973472 114203973511 114203973528 114203973588; do
+            echo "CHECK RUN $job_id"
+            gh api "/repos/${GITHUB_REPOSITORY}/check-runs/${job_id}/annotations?per_page=100" --jq '.[] | {level, title, message, path, start_line, end_line}' 
+          done
