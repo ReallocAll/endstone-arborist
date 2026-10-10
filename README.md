@@ -15,7 +15,7 @@ When a player enables Arborist and holds a supported sapling, the plugin finds s
 
 ## Installation
 
-Download a wheel from the CI build artifacts, or build one locally. Place **one** `endstone_arborist-*.whl` in the BDS server's `plugins/` directory and restart Endstone. The installed version of Endstone must be 0.11 or newer.
+Download a wheel from the CI build artifacts, or build one locally. Place **one** `endstone_arborist-*.whl` in the BDS server's `plugins/` directory and restart Endstone. Arborist supports Python 3.11 or newer and requires Endstone 0.11 or newer. The Endstone installation must provide a native wheel for the selected Python version. As of October 2026, Python 3.15 support has been verified for Arborist's pure-Python code and wheel, but the public Endstone release matrix does not yet provide a `cp315` wheel.
 
 Install the [Endstone PAPI](https://github.com/EndstoneMC/papi) and [Spark](https://github.com/EndstoneMC/spark) plugins for TPS reporting: automatic planting intentionally remains paused without a usable `{spark:tps_5s}` value. Arborist begins querying TPS after the first player joins. New players must opt in.
 
@@ -68,7 +68,7 @@ uv run pytest
 uv build --wheel
 ```
 
-The Python planner is independent of Endstone for unit testing. CI tests Python 3.10, 3.12 and 3.14, builds the wheel, verifies its entry point and bundled configuration, and uploads the wheel as a workflow artifact. CI does not publish releases or PyPI packages. Runtime behavior still requires validation on a BDS/Endstone server.
+The Python planner is independent of Endstone for unit testing. CI tests Python 3.11 through 3.15, builds the wheel, verifies its entry point and bundled configuration, and uploads the wheel as a workflow artifact. For Python 3.15, native Endstone installation is skipped until compatible wheels are available; this CI job validates only Arborist's Python code, package metadata, and wheel. CI does not publish releases or PyPI packages. Runtime behavior still requires validation on a BDS/Endstone server.
 
 ## License
 
