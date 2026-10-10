@@ -1,0 +1,63 @@
+# Arborist 0.3.4 - automatic tree planting
+
+enabled = true
+
+# Horizontal radius sampled on the BDS main thread before the pure planner is sent
+# to the dedicated ArboristPlanner worker.
+scan-radius = 8
+
+# Maximum plots actually planted per commit batch.
+max-recommendations = 3
+
+# Number of mutually-spaced candidates retained from one expensive planning pass.
+# The reservoir is consumed over several batches, avoiding a full replan every 3 trees.
+plan-capacity = 16
+
+# Continuous-movement rolling plan.  Walking does not discard the reservoir immediately:
+# at 3 blocks from its snapshot centre Arborist starts a background replacement, while
+# the overlapping old plan remains valid through 5 blocks.
+plan-prefetch-distance = 3
+plan-reuse-distance = 5
+
+# Movement-triggered replacement plans may be captured more quickly than ordinary
+# environment refreshes.  5 ticks matches Arborist's scheduler cadence.
+movement-prefetch-interval = 5
+
+# Minimum ticks between ordinary snapshot captures after a non-movement replan is needed.
+refresh-interval = 20
+
+# Current tested spacing is the default preset and remains unchanged.
+default-density = "default"
+spacing-scale = 1.0
+
+# Safety gate: Arborist reads {spark:tps_5s} through Endstone PAPI. Automatic
+# planning/planting is fail-closed while the metric is unavailable and is paused below
+# this TPS. /arb on is rejected while the gate is closed.
+min-tps = 19.0
+tps-check-interval = 20
+
+# Direct block writes do not fire BlockPlaceEvent. The Territory adapter mirrors
+# Territory's if_build/owner/manager/member/sub-territory rules from its database.
+territory-protection = "auto"
+
+respect-creative = true
+
+# Ticks between automatic commit batches for one player.
+autoplant-cooldown = 10
+
+min-trunk-distance = 3
+min-score = 0.35
+
+# Legacy recommendation UI keys retained for backward-compatible config parsing.
+particle-interval = 10
+show-tip = false
+tip-interval = 100
+require-sneaking = false
+
+[penalties]
+obstacle = 0.12
+sapling-spacing = 0.35
+mature-tree = 0.45
+density = 0.08
+conditional-soil = 0.2
+alignment-bonus = 0.1
