@@ -1,0 +1,87 @@
+name: Publish Arborist v0.3.4
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/release-v0.3.4.yml"
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    if: ${{ github.event.head_commit.message == 'release: publish Arborist v0.3.4' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download validated Arborist wheel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 38049136448 \
+            --repo "${GITHUB_REPOSITORY}" \
+            --name endstone-arborist-3.14 \
+            --dir release-dist
+          test -f release-dist/endstone_arborist-0.3.4-py3-none-any.whl
+
+      - name: Verify release artifact
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          from email.parser import Parser
+          import hashlib
+
+          path = Path("release-dist/endstone_arborist-0.3.4-py3-none-any.whl")
+          with ZipFile(path) as archive:
+              assert archive.testzip() is None
+              members = archive.namelist()
+              metadata_path, = (p for p in members if p.endswith(".dist-info/METADATA"))
+              meta = Parser().parsestr(archive.read(metadata_path).decode("utf-8"))
+              assert meta.get("Name") == "endstone-arborist"
+              assert meta.get("Version") == "0.3.4"
+              assert meta.get("License-Expression") == "GPL-3.0-only"
+              assert meta.get("Requires-Python") == ">=3.11"
+              assert "endstone_arborist/config.toml" in members
+              assert any(p.endswith(".dist-info/licenses/LICENSE") for p in members)
+              entry_path, = (p for p in members if p.endswith(".dist-info/entry_points.txt"))
+              assert "arborist = endstone_arborist:ArboristPlugin" in archive.read(entry_path).decode("utf-8")
+          print("Validated CI artifact SHA256:", hashlib.sha256(path.read_bytes()).hexdigest())
+          PY
+
+      - name: Publish private release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.3.4 --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release v0.3.4 already exists; refusing to overwrite it."
+            exit 1
+          fi
+          cat > release-notes.md <<'NOTES'
+          Arborist is an automatic, spacing-aware tree planting plugin for Endstone Bedrock servers.
+
+          ### Highlights
+          - Plant eight supported tree species by holding saplings after enabling Arborist.
+          - Configure player-specific planting density with commands or a server menu.
+          - Background planning with rolling candidate reuse and movement prefetch for smooth planting while walking.
+          - Spark TPS safeguard with quiet startup handling and configurable thresholds.
+          - Fail-closed Territory claim permission checks.
+
+          ### Requirements
+          - Python 3.11 or newer and Endstone 0.11 or newer.
+          - Endstone PAPI and Spark are required for the TPS safeguard.
+          - The wheel is pure Python; Python 3.15 passed package tests, but requires a compatible native Endstone build to run on BDS.
+
+          Install `endstone_arborist-0.3.4-py3-none-any.whl` into the Endstone `plugins/` directory, then restart the server. Existing Arborist configuration and player preferences are preserved.
+
+          License: GPL-3.0-only.
+          NOTES
+          gh release create v0.3.4 \
+            release-dist/endstone_arborist-0.3.4-py3-none-any.whl \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target 289a02e14bd66a0d260513935cb174ff855e0543 \
+            --title "Arborist v0.3.4" \
+            --notes-file release-notes.md
+          gh release view v0.3.4 --repo "${GITHUB_REPOSITORY}" \
+            --json tagName,isDraft,isPrerelease,assets,url,targetCommitish
