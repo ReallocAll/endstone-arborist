@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: Install development dependencies
+        run: uv sync --python ${{ matrix.python-version }} --extra dev
+      - name: Static analysis
+        run: uv run --no-sync ruff check .
+      - name: Unit tests
+        run: uv run --no-sync pytest
+      - name: Build wheel
+        run: uv build --wheel
+      - name: Verify wheel and installed distribution
+        run: |
+          uv pip install --python .venv/bin/python --reinstall --no-deps dist/*.whl
+          .venv/bin/python - <<'PY'
+          import importlib.metadata as metadata
+          import importlib.resources as resources
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          dist = metadata.distribution("endstone-arborist")
+          assert dist.version == "0.3.4"
+          entry = [ep for ep in dist.entry_points if ep.group == "endstone" and ep.name == "arborist"]
+          assert len(entry) == 1 and entry[0].value == "endstone_arborist:ArboristPlugin"
+          assert "scan-radius = 8" in resources.files("endstone_arborist").joinpath("config.toml").read_text()
+          import endstone_arborist.planner
+          wheel, = Path("dist").glob("*.whl")
+          with ZipFile(wheel) as archive:
+              assert archive.testzip() is None
+              assert "endstone_arborist/config.toml" in archive.namelist()
+              assert any(name.endswith("dist-info/licenses/LICENSE") for name in archive.namelist())
+          print("Wheel entry point, source modules, template, and license: PASS")
+          PY
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: endstone-arborist-${{ matrix.python-version }}
+          path: dist/*.whl
+          if-no-files-found: error
