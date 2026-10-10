@@ -39,7 +39,7 @@ from endstone_arborist.adapter import Observation, dimension_key, held_sapling, 
 from endstone_arborist.config import DENSITY_SCALES, RANGE_SPACING_SCALE, ArboristConfig
 from endstone_arborist.controller import ArboristController
 from endstone_arborist.performance import SparkTpsGate, TpsStatus
-from endstone_arborist.planner import Candidate, Plan, scaled_geometry
+from endstone_arborist.planner import Candidate, scaled_geometry
 from endstone_arborist.profiles import TreeProfile, supported_kinds
 from endstone_arborist.protection import TerritoryBuildGuard
 from endstone_arborist.sessions import PlayerSession
