@@ -12,6 +12,7 @@ When a player enables Arborist and holds a supported sapling, the plugin finds s
 - Spark five-second TPS safety gate through Endstone PlaceholderAPI; unavailable or low TPS pauses planting.
 - Read-only Territory claim integration with fail-closed protection when claim data cannot be trusted.
 - Chinese player-facing messages and Endstone command suggestions.
+- Optional crop sowing on nearby empty farmland while holding wheat/beetroot seeds, carrots, or potatoes. The mode is independent of tree planting and disabled by default.
 
 ## Installation
 
@@ -31,6 +32,9 @@ Install the [Endstone PAPI](https://github.com/EndstoneMC/papi) and [Spark](http
 | `/arb density default` | Use the original default spacing as your personal choice. |
 | `/arb density sparse` | Increase spacing. |
 | `/arb density server` | Remove the personal override and follow the server default. |
+| `/arb sow on` | Enable automatic crop sowing independently of tree planting. |
+| `/arb sow off` | Disable automatic sowing. |
+| `/arb sow` or `/arb sow status` | Display the sowing state. |
 | `/arb reload` | Reload server configuration (operator permission). |
 
 The full command name `/arborist` also works. The plugin can be exposed through a menu such as ClockMenu by dispatching the commands above as the player.
@@ -48,14 +52,19 @@ The plugin creates `plugins/arborist/config.toml` on first launch. Existing conf
 | `plan-reuse-distance` | `5` | Maximum movement allowed while using a cached plan. |
 | `movement-prefetch-interval` | `5` | Minimum ticks between movement-triggered replans. |
 | `refresh-interval` | `20` | Minimum ticks between ordinary scans. |
-| `autoplant-cooldown` | `10` | Minimum ticks between planting batches. |
+| `autoplant-cooldown` | `10` | Minimum ticks between tree planting batches. |
+| `sow-radius` | `4` | Radius of the crop search (1–6 blocks). |
+| `sow-max-per-batch` | `8` | Maximum crops sown per batch (1–16). |
+| `sow-cooldown` | `10` | Minimum ticks between crop sowing attempts. |
 | `default-density` | `"default"` | Server-wide density preset. |
 | `spacing-scale` | `1.0` | Global spacing multiplier. |
 | `min-tps` | `19.0` | Minimum accepted Spark TPS. |
 | `tps-check-interval` | `20` | TPS polling period in ticks. |
 | `territory-protection` | `"auto"` | `auto`, `required`, or `off` (not recommended). |
 
-See [`src/endstone_arborist/config.toml`](src/endstone_arborist/config.toml) for the complete reference template and legacy compatibility fields. Preferences are stored in `plugins/arborist/players.json`. Do not commit files from a live server.
+See [`src/endstone_arborist/config.toml`](src/endstone_arborist/config.toml) for the complete reference template and legacy compatibility fields. Preferences (including the separate `sowing` flag) are stored in `plugins/arborist/players.json`. Old preferences remain valid, and sowing defaults to off. Do not commit files from a live server.
+
+Automatic crop sowing only works in Survival mode and only fills air directly above farmland at the player's feet level. It never tills soil, harvests crops, replaces existing plants, or scans unloaded areas deliberately. It debits seeds before placing each block; a failed write attempts rollback. Sowing is skipped when TPS is low or unavailable, or when Territory denies building. Empty-hand and unsupported held items produce no block scans.
 
 Direct block writes do not emit `BlockPlaceEvent`. Arborist independently checks Territory permissions before every write; other plugins relying solely on that event may not record automatic placements.
 
