@@ -22,22 +22,23 @@ Install the [Endstone PAPI](https://github.com/EndstoneMC/papi) and [Spark](http
 
 ## Commands
 
+One `/arb` command groups both independent features under `tree` and `sow`:
+
 | Command | Purpose |
 | --- | --- |
-| `/arb on` | Enable automatic tree planting; requires healthy TPS and build permission. |
-| `/arb off` | Disable automatic tree planting (crop sowing is unaffected). |
-| `/arb status` | Show crop sowing and tree planting status, tree density and safeguards. |
-| `/arb density` | Show current density. |
-| `/arb density compact` | Plant more densely. |
-| `/arb density default` | Use the original default spacing as your personal choice. |
-| `/arb density sparse` | Increase spacing. |
-| `/arb density server` | Remove the personal override and follow the server default. |
-| `/arb sow on` | Enable automatic crop sowing independently of tree planting. |
-| `/arb sow off` | Disable automatic sowing. |
-| `/arb sow` or `/arb sow status` | Display the sowing state. |
+| `/arb tree on` | Enable automatic tree planting for yourself (healthy TPS and build permission required). |
+| `/arb tree off` | Disable tree planting without changing crop sowing. |
+| `/arb tree` or `/arb tree status` | Show tree planting state and spacing preference. |
+| `/arb tree density [compact|default|sparse|server]` | Show or change tree spacing; `server` restores inheritance. |
+| `/arb sow on` | Enable crop sowing independently of tree planting. |
+| `/arb sow off` | Disable crop sowing. |
+| `/arb sow` or `/arb sow status` | Show crop sowing state. |
+| `/arb` or `/arb status` | Show both planting modes, tree density, Territory and Spark TPS status. |
 | `/arb reload` | Reload server configuration (operator permission). |
 
-The full command name `/arborist` also works. The plugin can be exposed through a menu such as ClockMenu by dispatching the commands above as the player.
+The full name `/arborist` also works. For existing players and ClockMenu installations, the old `/arb on`, `/arb off` and `/arb density ...` still work as **tree-only** compatibility commands; prefer the explicit `tree` commands in new menus. Those compatibility overloads remain visible in Bedrock command completion because Endstone's `usages` list also defines which input forms are accepted.
+
+The plugin can be exposed through a menu such as ClockMenu by dispatching these commands as the player.
 
 ## Configuration
 
