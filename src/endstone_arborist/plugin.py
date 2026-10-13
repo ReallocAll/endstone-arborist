@@ -66,9 +66,13 @@ class ArboristPlugin(Plugin):
             # provide client-side command suggestions instead of greedily consuming a message.
             "usages": [
                 "/arborist",
-                "/arborist <on|off|status|reload>",
-                "/arborist <density> [compact|default|sparse|server]",
+                "/arborist <status|reload>",
+                "/arborist <tree> [on|off|status]",
+                "/arborist <tree> <density> [compact|default|sparse|server]",
                 "/arborist <sow> [on|off|status]",
+                # Previous commands remain valid for existing menus and players.
+                "/arborist <on|off>",
+                "/arborist <density> [compact|default|sparse|server]",
             ],
             "aliases": ["arb"],
             "permissions": ["arborist.command.arborist"],
@@ -669,6 +673,24 @@ class ArboristPlugin(Plugin):
             return True
 
         sub = args[0].lower() if args else "status"
+        if sub == "tree":
+            tree_args = args[1:]
+            action = tree_args[0].lower() if tree_args else "status"
+            if action == "status":
+                enabled = prefs.enabled(sender.unique_id)
+                explicit = prefs.density(sender.unique_id)
+                effective = explicit or controller.config.default_density
+                sender.send_message(
+                    f"Arborist 自动植树：{'§a开启' if enabled else '§e关闭'}§r，"
+                    f"植树密度={_density_label(effective)}（{'个人设置' if explicit else '服务器默认'}）。"
+                )
+                return True
+            if action == "density":
+                return self._density_command(sender, tree_args[1:])
+            if action not in ("on", "off"):
+                sender.send_error_message("用法：/arb tree [on|off|status] 或 /arb tree density [compact|default|sparse|server]")
+                return True
+            sub = action
         if sub == "on":
             status = self._update_tps_gate(force=True)
             if not status.allowed:
@@ -697,11 +719,11 @@ class ArboristPlugin(Plugin):
         if sub == "reload":
             return self._admin_reload(sender)
 
-        sender.send_error_message("用法：/arb <on|off|status|reload>、/arb density [compact|default|sparse|server] 或 /arb sow [on|off|status]")
+        sender.send_error_message("用法：/arb status、/arb tree [on|off|status]、/arb tree density [compact|default|sparse|server]、/arb sow [on|off|status] 或 /arb reload")
         return True
 
     def _can_enable_at_player(self, player: Player) -> bool:
-        """Reject ``/arb on`` when Territory denies building at the player's position.
+        """Reject planting activation when Territory denies building at the player's position.
 
         This is only an early user-facing guard. Every concrete placement is still checked
         again by :meth:`_can_build`, because a planting plan can cross a claim boundary.
