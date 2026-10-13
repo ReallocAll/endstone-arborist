@@ -131,11 +131,14 @@ def sow_nearby(
             if str(target.type) != crop.block:
                 raise RuntimeError("crop block write did not persist")
         except Exception:
-            # Never refund a seed while its crop may still exist in the world.
-            if str(target.type) != "minecraft:air":
+            # Refund only once the planting cell is confirmed empty. If another
+            # block unexpectedly occupies it, never overwrite that block.
+            current = str(target.type)
+            if current == crop.block:
                 target.set_type("minecraft:air")
-                if str(target.type) != "minecraft:air":
-                    raise RuntimeError("crop rollback failed; keeping charged seed")
+                current = str(target.type)
+            if current != "minecraft:air":
+                raise RuntimeError("crop rollback unsafe; keeping charged seed")
             stack.amount = count
             inventory.set_item(slot, stack)
             raise
