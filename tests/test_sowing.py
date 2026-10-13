@@ -196,3 +196,41 @@ def test_sowing_level_handles_player_standing_on_short_farmland():
     world.farmland(0, 0, y=64)
     assert sowing_level(world, 0, 64, 0) == 65
     assert sowing_level(world, 0, 65, 0) == 65
+
+
+
+def test_failed_crop_write_never_clears_an_unrelated_block():
+    world = Dimension()
+    world.farmland(0, 0)
+
+    class UnexpectedReplacement(Block):
+        def set_type(self, block_type):
+            if block_type == "minecraft:wheat":
+                self.type = "minecraft:stone"
+                raise OSError("unexpected replacement")
+            super().set_type(block_type)
+
+    world.blocks[(0, 65, 0)] = UnexpectedReplacement("minecraft:air")
+    inventory = Inventory(Stack(amount=1))
+    with pytest.raises(RuntimeError, match="rollback unsafe"):
+        run_sow(world, inventory, radius=1)
+    assert world.blocks[(0, 65, 0)].type == "minecraft:stone"
+    assert inventory.slot is None  # No refund while the planting cell is occupied.
+
+
+def test_failed_seed_refund_cannot_produce_a_free_crop():
+    world = Dimension()
+    world.farmland(0, 0)
+    world.blocks[(0, 65, 0)].fail_after = True
+
+    class RefundFailureInventory(Inventory):
+        def set_item(self, index, item):
+            if item is not None:
+                raise OSError("refund rejected")
+            super().set_item(index, item)
+
+    inventory = RefundFailureInventory(Stack(amount=1))
+    with pytest.raises(OSError, match="refund rejected"):
+        run_sow(world, inventory, radius=1)
+    assert inventory.slot is None
+    assert world.blocks[(0, 65, 0)].type == "minecraft:air"
