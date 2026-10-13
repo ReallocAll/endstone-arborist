@@ -1,19 +1,19 @@
 # Arborist
 
-Automatic, spacing-aware tree planting for [Endstone](https://github.com/EndstoneMC/endstone) Bedrock servers.
+Automatic crop sowing and spacing-aware tree planting for [Endstone](https://github.com/EndstoneMC/endstone) Bedrock servers.
 
-When a player enables Arborist and holds a supported sapling, the plugin finds suitable positions and plants nearby. The background planner maintains a rolling candidate pool as the player walks; world reads, permission checks, inventory changes, and block placement remain on the server thread.
+Players can independently enable crop sowing on vacant farmland (`/arb sow on`) or automatic tree planting (`/arb on`). Sowing uses a small bounded main-thread scan, while the background tree planner maintains a rolling candidate pool as the player walks. World writes, inventory changes and permission checks stay on the server thread.
 
 ## Features
 
+- Opt-in automatic sowing for wheat, carrots, potatoes and beetroot on vacant farmland; disabled by default.
 - Supports eight tree species, including 2×2 dark oak planting.
 - Per-player enable/disable state and compact/default/sparse density preferences, persisted by UUID.
 - Rolling background planning, candidate reuse, and rate-limited block writes.
 - Spark five-second TPS safety gate through Endstone PlaceholderAPI; unavailable or low TPS pauses planting.
 - Read-only Territory claim integration with fail-closed protection when claim data cannot be trusted.
 - Chinese player-facing messages and Endstone command suggestions.
-- Optional crop sowing on nearby empty farmland while holding wheat/beetroot seeds, carrots, or potatoes. The mode is independent of tree planting and disabled by default.
-
+ 
 ## Installation
 
 Download a wheel from the CI build artifacts, or build one locally. Place **one** `endstone_arborist-*.whl` in the BDS server's `plugins/` directory and restart Endstone. Arborist supports Python 3.11 or newer and requires Endstone 0.11 or newer. The Endstone installation must provide a native wheel for the selected Python version. As of October 2026, Python 3.15 support has been verified for Arborist's pure-Python code and wheel, but the public Endstone release matrix does not yet provide a `cp315` wheel.
@@ -24,9 +24,9 @@ Install the [Endstone PAPI](https://github.com/EndstoneMC/papi) and [Spark](http
 
 | Command | Purpose |
 | --- | --- |
-| `/arb on` | Enable automatic planting for yourself; requires healthy TPS and build permission at your position. |
-| `/arb off` | Disable planting. |
-| `/arb status` | Show current status and density. |
+| `/arb on` | Enable automatic tree planting; requires healthy TPS and build permission. |
+| `/arb off` | Disable automatic tree planting (crop sowing is unaffected). |
+| `/arb status` | Show crop sowing and tree planting status, tree density and safeguards. |
 | `/arb density` | Show current density. |
 | `/arb density compact` | Plant more densely. |
 | `/arb density default` | Use the original default spacing as your personal choice. |
@@ -41,7 +41,7 @@ The full command name `/arborist` also works. The plugin can be exposed through 
 
 ## Configuration
 
-The plugin creates `plugins/arborist/config.toml` on first launch. Existing configurations are preserved when upgrading; new fields use built-in defaults until added manually. Run `/arb reload` or restart after edits.
+The plugin creates `plugins/arborist/config.toml` on first launch. Existing configurations are preserved when upgrading; new fields use built-in defaults until added manually. Explicit existing `sow-cooldown` values (including `10`) are not overwritten. Run `/arb reload` or restart after edits.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ The plugin creates `plugins/arborist/config.toml` on first launch. Existing conf
 | `autoplant-cooldown` | `10` | Minimum ticks between tree planting batches. |
 | `sow-radius` | `4` | Radius of the crop search (1–6 blocks). |
 | `sow-max-per-batch` | `8` | Maximum crops sown per batch (1–16). |
-| `sow-cooldown` | `10` | Minimum ticks between crop sowing attempts. |
+| `sow-cooldown` | `5` | Minimum ticks between crop sowing attempts. |
 | `default-density` | `"default"` | Server-wide density preset. |
 | `spacing-scale` | `1.0` | Global spacing multiplier. |
 | `min-tps` | `19.0` | Minimum accepted Spark TPS. |

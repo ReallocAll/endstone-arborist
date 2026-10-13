@@ -17,7 +17,7 @@ def test_default_configuration_preserves_existing_values():
     assert config.min_tps == 19.0
     assert config.sow_radius == 4
     assert config.sow_max_per_batch == 8
-    assert config.sow_cooldown == 10
+    assert config.sow_cooldown == 5
     assert not config.warnings
 
 

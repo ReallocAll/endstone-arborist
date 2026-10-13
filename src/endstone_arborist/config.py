@@ -62,7 +62,7 @@ DEFAULTS: Final[dict[str, object]] = {
     "autoplant-cooldown": 5,
     "sow-radius": 4,
     "sow-max-per-batch": 8,
-    "sow-cooldown": 10,
+    "sow-cooldown": 5,
     "min-tps": 19.0,
     "tps-check-interval": 20,
     "min-trunk-distance": 3,
@@ -215,7 +215,7 @@ class ArboristConfig:
     autoplant_cooldown: int = 5
     sow_radius: int = 4
     sow_max_per_batch: int = 8
-    sow_cooldown: int = 10
+    sow_cooldown: int = 5
     min_tps: float = 19.0
     tps_check_interval: int = 20
     min_trunk_distance: int = 3
@@ -318,7 +318,7 @@ class ArboristConfig:
             ),
             sow_radius=get_int("sow-radius", 4, (1, 6)),
             sow_max_per_batch=get_int("sow-max-per-batch", 8, (1, 16)),
-            sow_cooldown=get_int("sow-cooldown", 10, RANGE_TICKS),
+            sow_cooldown=get_int("sow-cooldown", 5, RANGE_TICKS),
             min_tps=_as_float(
                 source.get("min-tps", DEFAULTS["min-tps"]),
                 19.0,

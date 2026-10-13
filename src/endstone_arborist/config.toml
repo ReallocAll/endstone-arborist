@@ -1,4 +1,4 @@
-# Arborist 0.3.4 - automatic tree planting
+# Arborist 0.3.4 - automatic crop sowing and tree planting
 
 enabled = true
 
@@ -45,11 +45,11 @@ respect-creative = true
 # Ticks between automatic commit batches for one player.
 autoplant-cooldown = 10
 
-# Automatic crop sowing is opt-in per player (/arb sow on).
-# Only vacant farmland is planted, using the item currently held.
+# Automatic crop sowing is opt-in per player (/arb sow on), separately from
+# tree planting (/arb on). Only vacant farmland is planted using the held item.
 sow-radius = 4
 sow-max-per-batch = 8
-sow-cooldown = 10
+sow-cooldown = 5
 
 min-trunk-distance = 3
 min-score = 0.35

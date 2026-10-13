@@ -1,8 +1,8 @@
-"""Endstone entrypoint for Arborist's automatic planting workflow.
+"""Endstone entrypoint for Arborist's automatic crop sowing and tree planting.
 
-Arborist 0.3 deliberately has one player-facing mode: after ``/arb on``, holding a
-supported sapling is enough. The planner runs in the background and commits suitable
-plots automatically. There is no preview/gesture state machine.
+Players enable crop sowing with ``/arb sow on`` or tree planting with ``/arb on``.
+The background tree planner is independent of lightweight main-thread sowing.
+There is no preview/gesture state machine.
 
 This module deliberately does not enable postponed annotations because Endstone inspects
 event handler annotations at registration time and expects concrete event classes.
@@ -54,14 +54,14 @@ _TASK_PERIOD = 5
 
 
 class ArboristPlugin(Plugin):
-    """Automatic sapling planter for Endstone survival servers."""
+    """Automatic crop sowing and tree planting for Endstone servers."""
 
     prefix = "Arborist"  # type: ignore[assignment]
     api_version = "0.11"  # type: ignore[assignment]
     soft_depend = ["papi", "spark"]  # type: ignore[assignment]
     commands = {  # type: ignore[assignment]  # noqa: RUF012
         "arborist": {
-            "description": "管理 Arborist 自动植树设置。",
+            "description": "管理 Arborist 自动播种与植树设置。",
             # Use real Endstone enum overloads so Bedrock can validate arguments and
             # provide client-side command suggestions instead of greedily consuming a message.
             "usages": [
@@ -76,11 +76,11 @@ class ArboristPlugin(Plugin):
     }
     permissions = {  # type: ignore[assignment]  # noqa: RUF012
         "arborist.command.arborist": {
-            "description": "允许使用 Arborist 玩家设置。",
+            "description": "允许使用 Arborist 自动播种与植树设置。",
             "default": True,
         },
         "arborist.command.admin": {
-            "description": "允许重载 Arborist 服务器配置。",
+            "description": "允许重载 Arborist 自动播种与植树配置。",
             "default": "op",
         },
     }
@@ -124,9 +124,10 @@ class ArboristPlugin(Plugin):
         self.register_events(self)
         self._task = self.server.scheduler.run_task(self, self._tick, delay=20, period=_TASK_PERIOD)
         self.logger.info(
-            f"enabled automatic planting for {len(supported_kinds())} species "
+            f"enabled crop sowing (opt-in) and tree planting for {len(supported_kinds())} species "
             f"(radius {config.scan_radius}, refresh {config.refresh_interval}t, "
-            f"server density {config.default_density}, planner worker=1, min TPS {config.min_tps:g})"
+            f"server density {config.default_density}, sow cooldown {config.sow_cooldown}t, "
+            f"planner worker=1, min TPS {config.min_tps:g})"
         )
         self._log_protection_state()
 
@@ -201,13 +202,13 @@ class ArboristPlugin(Plugin):
             if status.allowed:
                 self.logger.info(f"Spark TPS guard ready: {status.tps:.2f} TPS (minimum {gate.minimum:.2f})")
             elif status.available:
-                self.logger.warning(status.reason + "; automatic planting paused")
+                self.logger.warning(status.reason + "; automatic sowing and tree planting paused")
             elif status.warming_up:
                 # Normal during server startup while Spark is still filling its rolling
                 # TPS window.  The guard remains fail-closed, but this is not an error.
                 pass
             else:
-                self.logger.warning(status.reason + "; automatic planting fail-closed")
+                self.logger.warning(status.reason + "; automatic sowing and tree planting fail-closed")
             self._tps_state_key = key
         return status
 
@@ -361,7 +362,7 @@ class ArboristPlugin(Plugin):
             on_planted=lambda bx, by, bz: controller.on_block_change(dimension_id, bx, by, bz),
         )
         if count:
-            player.send_tip(f"§aArborist §7| §f已自动播种 §a{count} §f格{crop.display_name}")
+            player.send_tip(f"§aArborist §r| 已自动播种 §a{count} §r格{crop.display_name}")
 
     def _can_build(self, player: Player, op: autoplant.PlaceOp) -> bool:
         guard = self._protection
@@ -567,7 +568,7 @@ class ArboristPlugin(Plugin):
             session.movement_prefetch = False
 
         if placed:
-            player.send_tip(f"§aArborist §7| §f已自动种植 §a{placed} §f株{profile.display_name}")
+            player.send_tip(f"§aArborist §r| 已自动植树 §a{placed} §r株{profile.display_name}")
         return placed
 
     # ------------------------------------------------------------------ cache invalidation events
@@ -674,13 +675,13 @@ class ArboristPlugin(Plugin):
             prefs.set_enabled(sender.unique_id, True)
             self._next_plant_tick.pop(sender.unique_id, None)
             self._refresh_player(sender)
-            sender.send_message("§aArborist 已开启。§r手持受支持的树苗即可自动种植。")
+            sender.send_message("§aArborist 自动植树已开启。§r手持受支持的树苗即可自动植树。")
             return True
         if sub == "off":
             prefs.set_enabled(sender.unique_id, False)
             self._next_plant_tick.pop(sender.unique_id, None)
             controller.on_quit(sender.unique_id)
-            sender.send_message("§eArborist 已关闭。")
+            sender.send_message("§eArborist 自动植树已关闭。")
             return True
         if sub == "status":
             self._send_status(sender, controller)
@@ -721,7 +722,7 @@ class ArboristPlugin(Plugin):
         ):
             return True
 
-        player.send_error_message("§c当前领地受保护，你没有建造权限，无法开启自动种树。")
+        player.send_error_message("§c当前领地受保护，你没有建造权限，无法开启自动播种或植树。")
         return False
 
     def _sow_command(self, player: Player, args: list[str]) -> bool:
@@ -742,7 +743,7 @@ class ArboristPlugin(Plugin):
             prefs.set_sowing_enabled(player.unique_id, True)
             self._next_sow_tick.pop(player.unique_id, None)
             self._last_sow_scan.pop(player.unique_id, None)
-            player.send_message("§aArborist 自动播种已开启。§r手持种子或作物走过空闲耕地即可播种。")
+            player.send_message("§aArborist 自动播种已开启。§r手持小麦或甜菜种子、胡萝卜、马铃薯经过空闲耕地即可播种。")
             return True
         if mode == "off":
             prefs.set_sowing_enabled(player.unique_id, False)
@@ -827,8 +828,8 @@ class ArboristPlugin(Plugin):
         else:
             tps_text = f"不可用（{tps.reason}，最低 {minimum:g}）"
         player.send_message(
-            f"Arborist：自动植树={'§a开启' if enabled else '§e关闭'}§r，"
-            f"自动播种={'§a开启' if sowing else '§e关闭'}§r，"
+            f"Arborist：自动播种={'§a开启' if sowing else '§e关闭'}§r，"
+            f"自动植树={'§a开启' if enabled else '§e关闭'}§r，"
             f"密度={_density_label(effective)}（{'个人设置' if explicit else '服务器默认'}），"
             f"领地保护={_protection_label(protection)}，Spark TPS={tps_text}。"
         )
