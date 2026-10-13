@@ -159,3 +159,33 @@ def test_occupied_air_column_or_non_farmland_is_never_modified():
     assert run_sow(world, inventory, radius=1) == 0
     assert inventory.slot.amount == 5
     assert world.blocks[(0, 65, 0)].type == "minecraft:carrots"
+
+
+def test_unverifiable_inventory_debit_never_writes_a_crop():
+    world = Dimension()
+    world.farmland(0, 0)
+
+    class BrokenInventory(Inventory):
+        def get_item(self, index):
+            raise OSError("unreadable inventory")
+
+    inventory = BrokenInventory(Stack(amount=1))
+    with pytest.raises(OSError, match="unreadable"):
+        run_sow(world, inventory, radius=1)
+    assert world.blocks[(0, 65, 0)].type == "minecraft:air"
+    assert inventory.slot.amount == 1
+
+
+def test_failed_debit_does_not_create_free_crop():
+    world = Dimension()
+    world.farmland(0, 0)
+
+    class RejectingInventory(Inventory):
+        def set_item(self, index, item):
+            raise OSError("inventory rejected write")
+
+    inventory = RejectingInventory(Stack(amount=1))
+    with pytest.raises(OSError, match="rejected"):
+        run_sow(world, inventory, radius=1)
+    assert world.blocks[(0, 65, 0)].type == "minecraft:air"
+    assert inventory.slot.amount == 1
