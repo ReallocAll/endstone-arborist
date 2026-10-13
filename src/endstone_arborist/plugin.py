@@ -70,9 +70,6 @@ class ArboristPlugin(Plugin):
                 "/arborist <tree> [on|off|status]",
                 "/arborist <tree> <density> [compact|default|sparse|server]",
                 "/arborist <sow> [on|off|status]",
-                # Previous commands remain valid for existing menus and players.
-                "/arborist <on|off>",
-                "/arborist <density> [compact|default|sparse|server]",
             ],
             "aliases": ["arb"],
             "permissions": ["arborist.command.arborist"],
@@ -687,35 +684,31 @@ class ArboristPlugin(Plugin):
                 return True
             if action == "density":
                 return self._density_command(sender, tree_args[1:])
-            if action not in ("on", "off"):
-                sender.send_error_message("用法：/arb tree [on|off|status] 或 /arb tree density [compact|default|sparse|server]")
+            if action == "on":
+                status = self._update_tps_gate(force=True)
+                if not status.allowed:
+                    sender.send_error_message(self._tps_rejection(status))
+                    return True
+                if not self._can_enable_at_player(sender):
+                    return True
+                prefs.set_enabled(sender.unique_id, True)
+                self._next_plant_tick.pop(sender.unique_id, None)
+                self._refresh_player(sender)
+                sender.send_message("§aArborist 自动植树已开启。§r手持受支持的树苗即可自动植树。")
                 return True
-            sub = action
-        if sub == "on":
-            status = self._update_tps_gate(force=True)
-            if not status.allowed:
-                sender.send_error_message(self._tps_rejection(status))
+            if action == "off":
+                prefs.set_enabled(sender.unique_id, False)
+                self._next_plant_tick.pop(sender.unique_id, None)
+                controller.on_quit(sender.unique_id)
+                sender.send_message("§eArborist 自动植树已关闭。")
                 return True
-            if not self._can_enable_at_player(sender):
-                return True
-            prefs.set_enabled(sender.unique_id, True)
-            self._next_plant_tick.pop(sender.unique_id, None)
-            self._refresh_player(sender)
-            sender.send_message("§aArborist 自动植树已开启。§r手持受支持的树苗即可自动植树。")
+            sender.send_error_message("用法：/arb tree [on|off|status] 或 /arb tree density [compact|default|sparse|server]")
             return True
-        if sub == "off":
-            prefs.set_enabled(sender.unique_id, False)
-            self._next_plant_tick.pop(sender.unique_id, None)
-            controller.on_quit(sender.unique_id)
-            sender.send_message("§eArborist 自动植树已关闭。")
-            return True
+        if sub == "sow":
+            return self._sow_command(sender, args[1:])
         if sub == "status":
             self._send_status(sender, controller)
             return True
-        if sub == "density":
-            return self._density_command(sender, args[1:] if len(args) > 1 else [])
-        if sub == "sow":
-            return self._sow_command(sender, args[1:])
         if sub == "reload":
             return self._admin_reload(sender)
 
@@ -800,7 +793,7 @@ class ArboristPlugin(Plugin):
             player.send_message(f"Arborist 植树密度：已恢复跟随服务器默认（{_density_label(effective)}）。")
             return True
         if wanted not in DENSITY_PRESETS:
-            player.send_error_message("用法：/arb density <compact|default|sparse|server>")
+            player.send_error_message("用法：/arb tree density <compact|default|sparse|server>")
             return True
         prefs.set_density(player.unique_id, wanted)
         _preset, scale = self._effective_density(player.unique_id, controller.config)

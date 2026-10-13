@@ -1,4 +1,4 @@
-# Arborist 0.3.4 - automatic crop sowing and tree planting
+# Arborist 0.4.0 - automatic crop sowing and tree planting
 
 enabled = true
 
@@ -32,7 +32,7 @@ spacing-scale = 1.0
 
 # Safety gate: Arborist reads {spark:tps_5s} through Endstone PAPI. Automatic
 # planning/planting is fail-closed while the metric is unavailable and is paused below
-# this TPS. /arb on is rejected while the gate is closed.
+# this TPS. /arb tree on and /arb sow on are rejected while the gate is closed.
 min-tps = 19.0
 tps-check-interval = 20
 
@@ -46,7 +46,7 @@ respect-creative = true
 autoplant-cooldown = 10
 
 # Automatic crop sowing is opt-in per player (/arb sow on), separately from
-# tree planting (/arb on). Only vacant farmland is planted using the held item.
+# tree planting (/arb tree on). Only vacant farmland is planted using the held item.
 sow-radius = 4
 sow-max-per-batch = 8
 sow-cooldown = 5

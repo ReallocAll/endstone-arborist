@@ -36,9 +36,11 @@ One `/arb` command groups both independent features under `tree` and `sow`:
 | `/arb` or `/arb status` | Show both planting modes, tree density, Territory and Spark TPS status. |
 | `/arb reload` | Reload server configuration (operator permission). |
 
-The full name `/arborist` also works. For existing players and ClockMenu installations, the old `/arb on`, `/arb off` and `/arb density ...` still work as **tree-only** compatibility commands; prefer the explicit `tree` commands in new menus. Those compatibility overloads remain visible in Bedrock command completion because Endstone's `usages` list also defines which input forms are accepted.
+The full name `/arborist` also works. The obsolete `/arb on`, `/arb off` and `/arb density ...` commands were removed; update ClockMenu to `/arb tree ...` before restarting the server.
 
 The plugin can be exposed through a menu such as ClockMenu by dispatching these commands as the player.
+
+Version 0.4.0 adds crop sowing and simplifies commands. Existing player preferences and config values remain intact; only the old command forms were dropped.
 
 ## Configuration
 

@@ -1,6 +1,6 @@
 # Arborist development notes
 
-- Keep the Endstone entry point `endstone_arborist:ArboristPlugin` and command names stable; preserve UUID preferences and old `config.toml` keys.
+- Keep the Endstone entry point `endstone_arborist:ArboristPlugin` stable; use `/arb tree ...` and `/arb sow ...` without old command aliases. Preserve UUID preferences and old `config.toml` keys.
 - All Endstone objects and PAPI parsing stay on the BDS main thread. The `ArboristPlanner` worker only receives immutable Python snapshot data; stale generations must be discarded.
 - Enforce Territory protection again at commit time. Never bypass it for faster planting; an unavailable adapter fails closed.
 - Avoid full replans on each movement event; preserve the rolling-plan and prefetch semantics.

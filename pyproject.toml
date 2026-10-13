@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "endstone-arborist"
-version = "0.3.4"
-description = "Automatic tree planting assistant for Endstone servers"
+version = "0.4.0"
+description = "Automatic crop sowing and tree planting for Endstone servers"
 readme = "README.md"
 license = "GPL-3.0-only"
 requires-python = ">=3.11"
 authors = [{ name = "ReallocAll" }]
-keywords = ["endstone", "minecraft", "bedrock", "arborist", "sapling"]
+keywords = ["endstone", "minecraft", "bedrock", "arborist", "sapling", "crop", "sowing"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
