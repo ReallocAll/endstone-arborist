@@ -45,6 +45,12 @@ respect-creative = true
 # Ticks between automatic commit batches for one player.
 autoplant-cooldown = 10
 
+# Automatic crop sowing is opt-in per player (/arb sow on).
+# Only vacant farmland is planted, using the item currently held.
+sow-radius = 4
+sow-max-per-batch = 8
+sow-cooldown = 10
+
 min-trunk-distance = 3
 min-score = 0.35
 
