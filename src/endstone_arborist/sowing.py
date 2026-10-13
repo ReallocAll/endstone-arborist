@@ -104,7 +104,13 @@ def sow_nearby(
             stack.amount = count
             raise
 
-        actual = inventory.get_item(slot)
+        try:
+            actual = inventory.get_item(slot)
+        except Exception:
+            # An unreadable debit cannot be verified; do not touch the world.
+            stack.amount = count
+            inventory.set_item(slot, stack)
+            raise
         if (count == 1 and actual is not None) or (
             count > 1
             and (actual is None or str(actual.type) != crop.item or int(actual.amount) != count - 1)
