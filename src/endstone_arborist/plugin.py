@@ -44,7 +44,7 @@ from endstone_arborist.profiles import TreeProfile, supported_kinds
 from endstone_arborist.protection import TerritoryBuildGuard
 from endstone_arborist.sessions import PlayerSession
 from endstone_arborist.settings import DENSITY_PRESETS, PlayerPreferences
-from endstone_arborist.sowing import crop_for_item, sow_nearby
+from endstone_arborist.sowing import crop_for_item, sow_nearby, sowing_level
 from endstone_arborist.world import ColumnScanner
 
 __all__ = ["ArboristPlugin"]
@@ -345,10 +345,7 @@ class ArboristPlugin(Plugin):
 
         self._next_sow_tick[player.unique_id] = tick + controller.config.sow_cooldown
         self._last_sow_scan[player.unique_id] = (signature, tick)
-        # Farmland is 15/16 of a block tall. Standing on it may yield the
-        # farmland's own block_y; crops must still go in the cell above.
-        if str(dimension.get_block_at(x, y, z).type) == "minecraft:farmland":
-            y += 1
+        y = sowing_level(dimension, x, y, z)
         count = sow_nearby(
             dimension,
             player.inventory,

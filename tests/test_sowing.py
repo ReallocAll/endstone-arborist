@@ -2,7 +2,7 @@
 
 import pytest
 
-from endstone_arborist.sowing import crop_for_item, sow_nearby
+from endstone_arborist.sowing import crop_for_item, sow_nearby, sowing_level
 
 
 class Stack:
@@ -189,3 +189,10 @@ def test_failed_debit_does_not_create_free_crop():
         run_sow(world, inventory, radius=1)
     assert world.blocks[(0, 65, 0)].type == "minecraft:air"
     assert inventory.slot.amount == 1
+
+
+def test_sowing_level_handles_player_standing_on_short_farmland():
+    world = Dimension()
+    world.farmland(0, 0, y=64)
+    assert sowing_level(world, 0, 64, 0) == 65
+    assert sowing_level(world, 0, 65, 0) == 65

@@ -8,7 +8,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
 
-__all__ = ["Crop", "crop_for_item", "sow_nearby"]
+__all__ = ["Crop", "crop_for_item", "sow_nearby", "sowing_level"]
 
 
 @dataclass(frozen=True)
@@ -31,6 +31,13 @@ _CROPS = {
 
 def crop_for_item(item: str) -> Crop | None:
     return _CROPS.get(item)
+
+
+def sowing_level(dimension: object, x: int, feet_y: int, z: int) -> int:
+    """Farmland is shorter than a full block, so feet may be inside it."""
+    if str(dimension.get_block_at(x, feet_y, z).type) == "minecraft:farmland":
+        return feet_y + 1
+    return feet_y
 
 
 @lru_cache(maxsize=6)
