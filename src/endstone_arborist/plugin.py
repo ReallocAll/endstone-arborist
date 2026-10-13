@@ -44,6 +44,7 @@ from endstone_arborist.profiles import TreeProfile, supported_kinds
 from endstone_arborist.protection import TerritoryBuildGuard
 from endstone_arborist.sessions import PlayerSession
 from endstone_arborist.settings import DENSITY_PRESETS, PlayerPreferences
+from endstone_arborist.sowing import crop_for_item, sow_nearby
 from endstone_arborist.world import ColumnScanner
 
 __all__ = ["ArboristPlugin"]
@@ -67,6 +68,7 @@ class ArboristPlugin(Plugin):
                 "/arborist",
                 "/arborist <on|off|status|reload>",
                 "/arborist <density> [compact|default|sparse|server]",
+                "/arborist <sow> [on|off|status]",
             ],
             "aliases": ["arb"],
             "permissions": ["arborist.command.arborist"],
@@ -92,6 +94,8 @@ class ArboristPlugin(Plugin):
         self._prefs: PlayerPreferences | None = None
         self._protection: TerritoryBuildGuard | None = None
         self._next_plant_tick: dict[object, int] = {}
+        self._next_sow_tick: dict[object, int] = {}
+        self._last_sow_scan: dict[object, tuple[tuple[str, int, int, int, str], int]] = {}
         self._tps_gate: SparkTpsGate | None = None
         self._tps_allowed = False
         self._tps_state_key: tuple[bool, bool, str | None] | None = None
@@ -131,6 +135,8 @@ class ArboristPlugin(Plugin):
             self._task.cancel()
             self._task = None
         self._next_plant_tick.clear()
+        self._next_sow_tick.clear()
+        self._last_sow_scan.clear()
         if self._prefs is not None:
             self._prefs.save()
             self._prefs = None
@@ -214,8 +220,8 @@ class ArboristPlugin(Plugin):
 
     def _tps_rejection(self, status: TpsStatus) -> str:
         if status.tps is not None:
-            return f"当前服务器 TPS 为 {status.tps:.2f}，低于 Arborist 启用阈值 {self._tps_minimum():g}，暂时无法开启自动植树。"
-        return f"暂时无法验证服务器 TPS（{status.reason}），为避免卡服已禁止开启自动植树。"
+            return f"当前服务器 TPS 为 {status.tps:.2f}，低于 Arborist 启用阈值 {self._tps_minimum():g}，暂时无法开启自动种植。"
+        return f"暂时无法验证服务器 TPS（{status.reason}），为避免卡服已禁止开启自动种植。"
 
     # ------------------------------------------------------------------ planning / automatic commit
 
@@ -257,15 +263,17 @@ class ArboristPlugin(Plugin):
 
         observations: list[Observation] = []
         enabled_players: list[Player] = []
+        sow_players: list[Player] = []
         for player in players:
-            if not prefs.enabled(player.unique_id):
-                continue
-            enabled_players.append(player)
-            _preset, scale = self._effective_density(player.unique_id, controller.config)
-            controller.set_spacing_scale(player.unique_id, scale)
-            observation = self._observe(player)
-            if observation is not None:
-                observations.append(observation)
+            if prefs.sowing_enabled(player.unique_id):
+                sow_players.append(player)
+            if prefs.enabled(player.unique_id):
+                enabled_players.append(player)
+                _preset, scale = self._effective_density(player.unique_id, controller.config)
+                controller.set_spacing_scale(player.unique_id, scale)
+                observation = self._observe(player)
+                if observation is not None:
+                    observations.append(observation)
 
         try:
             controller.tick(observations, self._period, allow_planning=allow_automatic)
@@ -280,6 +288,11 @@ class ArboristPlugin(Plugin):
 
         if not allow_automatic:
             return
+        for player in sow_players:
+            try:
+                self._auto_sow(player, controller)
+            except Exception:
+                self.logger.error(f"automatic sowing failed for {player.name}\n" + traceback.format_exc())
         for player in enabled_players:
             try:
                 self._auto_plant(player, controller)
@@ -307,6 +320,47 @@ class ArboristPlugin(Plugin):
         # inventory must not be retried four times a second while the player stands still.
         self._next_plant_tick[player.unique_id] = tick + max(1, controller.config.autoplant_cooldown)
         self._commit(controller, player, session, profile)
+
+    def _auto_sow(self, player: Player, controller: ArboristController) -> None:
+        # Only Survival consumes crop items. No planting in Creative/Adventure,
+        # regardless of the tree-planting game-mode setting.
+        if not player.is_valid or player.game_mode.name != "SURVIVAL":
+            return
+        held = player.inventory.item_in_main_hand
+        crop = crop_for_item(str(held.type)) if held is not None and int(held.amount) > 0 else None
+        if crop is None:
+            return
+
+        tick = controller.current_tick
+        if tick < self._next_sow_tick.get(player.unique_id, 0):
+            return
+        pos = player.location
+        dimension = player.dimension
+        dimension_id = dimension_key(dimension)
+        x, y, z = int(pos.block_x), int(pos.block_y), int(pos.block_z)
+        signature = (dimension_id, x, y, z, crop.item)
+        previous = self._last_sow_scan.get(player.unique_id)
+        if previous is not None and previous[0] == signature and tick - previous[1] < controller.config.refresh_interval:
+            return
+
+        self._next_sow_tick[player.unique_id] = tick + controller.config.sow_cooldown
+        self._last_sow_scan[player.unique_id] = (signature, tick)
+        count = sow_nearby(
+            dimension,
+            player.inventory,
+            crop,
+            x,
+            y,
+            z,
+            radius=controller.config.sow_radius,
+            limit=controller.config.sow_max_per_batch,
+            can_build=lambda bx, by, bz: self._can_build(
+                player, autoplant.PlaceOp(bx, by, bz, crop.block)
+            ),
+            on_planted=lambda bx, by, bz: controller.on_block_change(dimension_id, bx, by, bz),
+        )
+        if count:
+            player.send_tip(f"§aArborist §7| §f已自动播种 §a{count} §f格{crop.display_name}")
 
     def _can_build(self, player: Player, op: autoplant.PlaceOp) -> bool:
         guard = self._protection
@@ -551,6 +605,8 @@ class ArboristPlugin(Plugin):
         if controller is not None:
             controller.on_quit(event.player.unique_id)
         self._next_plant_tick.pop(event.player.unique_id, None)
+        self._next_sow_tick.pop(event.player.unique_id, None)
+        self._last_sow_scan.pop(event.player.unique_id, None)
 
     @event_handler(priority=EventPriority.MONITOR)  # type: ignore[untyped-decorator]
     def on_move(self, event: PlayerMoveEvent) -> None:
@@ -630,10 +686,12 @@ class ArboristPlugin(Plugin):
             return True
         if sub == "density":
             return self._density_command(sender, args[1:] if len(args) > 1 else [])
+        if sub == "sow":
+            return self._sow_command(sender, args[1:])
         if sub == "reload":
             return self._admin_reload(sender)
 
-        sender.send_error_message("用法：/arb <on|off|status|reload> 或 /arb density [compact|default|sparse|server]")
+        sender.send_error_message("用法：/arb <on|off|status|reload>、/arb density [compact|default|sparse|server] 或 /arb sow [on|off|status]")
         return True
 
     def _can_enable_at_player(self, player: Player) -> bool:
@@ -646,7 +704,7 @@ class ArboristPlugin(Plugin):
         if guard is None or guard.mode == "off":
             return True
         if not guard.refresh(force=True):
-            player.send_error_message("§cTerritory 保护状态异常，当前无法开启自动种树。")
+            player.send_error_message("§cTerritory 保护状态异常，当前无法开启自动种植。")
             return False
         if not guard.detected:
             return guard.mode == "auto"
@@ -664,6 +722,35 @@ class ArboristPlugin(Plugin):
 
         player.send_error_message("§c当前领地受保护，你没有建造权限，无法开启自动种树。")
         return False
+
+    def _sow_command(self, player: Player, args: list[str]) -> bool:
+        prefs = self._prefs
+        if prefs is None:
+            return True
+        mode = args[0].lower() if args else "status"
+        if mode == "status":
+            player.send_message(f"Arborist 自动播种：{'§a开启' if prefs.sowing_enabled(player.unique_id) else '§e关闭'}§r。")
+            return True
+        if mode == "on":
+            tps = self._update_tps_gate(force=True)
+            if not tps.allowed:
+                player.send_error_message(self._tps_rejection(tps))
+                return True
+            if not self._can_enable_at_player(player):
+                return True
+            prefs.set_sowing_enabled(player.unique_id, True)
+            self._next_sow_tick.pop(player.unique_id, None)
+            self._last_sow_scan.pop(player.unique_id, None)
+            player.send_message("§aArborist 自动播种已开启。§r手持种子或作物走过空闲耕地即可播种。")
+            return True
+        if mode == "off":
+            prefs.set_sowing_enabled(player.unique_id, False)
+            self._next_sow_tick.pop(player.unique_id, None)
+            self._last_sow_scan.pop(player.unique_id, None)
+            player.send_message("§eArborist 自动播种已关闭。")
+            return True
+        player.send_error_message("用法：/arb sow [on|off|status]")
+        return True
 
     def _density_command(self, player: Player, args: list[str]) -> bool:
         prefs = self._prefs
@@ -713,6 +800,8 @@ class ArboristPlugin(Plugin):
         if self._tps_monitor_started:
             self._update_tps_gate(force=True)
         self._next_plant_tick.clear()
+        self._next_sow_tick.clear()
+        self._last_sow_scan.clear()
         sender.send_message("Arborist 配置已重载。")
         self._log_protection_state()
         return True
@@ -720,6 +809,7 @@ class ArboristPlugin(Plugin):
     def _send_status(self, player: Player, controller: ArboristController) -> None:
         prefs = self._prefs
         enabled = bool(prefs and prefs.enabled(player.unique_id))
+        sowing = bool(prefs and prefs.sowing_enabled(player.unique_id))
         explicit = prefs.density(player.unique_id) if prefs else None
         effective = explicit or controller.config.default_density
         guard = self._protection
@@ -736,7 +826,8 @@ class ArboristPlugin(Plugin):
         else:
             tps_text = f"不可用（{tps.reason}，最低 {minimum:g}）"
         player.send_message(
-            f"Arborist：{'§a开启' if enabled else '§e关闭'}§r，"
+            f"Arborist：自动植树={'§a开启' if enabled else '§e关闭'}§r，"
+            f"自动播种={'§a开启' if sowing else '§e关闭'}§r，"
             f"密度={_density_label(effective)}（{'个人设置' if explicit else '服务器默认'}），"
             f"领地保护={_protection_label(protection)}，Spark TPS={tps_text}。"
         )
