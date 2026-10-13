@@ -2,7 +2,7 @@
 
 Automatic crop sowing and spacing-aware tree planting for [Endstone](https://github.com/EndstoneMC/endstone) Bedrock servers.
 
-Players can independently enable crop sowing on vacant farmland (`/arb sow on`) or automatic tree planting (`/arb on`). Sowing uses a small bounded main-thread scan, while the background tree planner maintains a rolling candidate pool as the player walks. World writes, inventory changes and permission checks stay on the server thread.
+Players can independently enable crop sowing on vacant farmland (`/arb sow on`) or automatic tree planting (`/arb tree on`). Sowing uses a small bounded main-thread scan, while the background tree planner maintains a rolling candidate pool as the player walks. World writes, inventory changes and permission checks stay on the server thread.
 
 ## Features
 

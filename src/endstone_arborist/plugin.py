@@ -1,6 +1,6 @@
 """Endstone entrypoint for Arborist's automatic crop sowing and tree planting.
 
-Players enable crop sowing with ``/arb sow on`` or tree planting with ``/arb on``.
+Players enable crop sowing with ``/arb sow on`` or tree planting with ``/arb tree on``.
 The background tree planner is independent of lightweight main-thread sowing.
 There is no preview/gesture state machine.
 
