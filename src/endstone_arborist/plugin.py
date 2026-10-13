@@ -345,6 +345,10 @@ class ArboristPlugin(Plugin):
 
         self._next_sow_tick[player.unique_id] = tick + controller.config.sow_cooldown
         self._last_sow_scan[player.unique_id] = (signature, tick)
+        # Farmland is 15/16 of a block tall. Standing on it may yield the
+        # farmland's own block_y; crops must still go in the cell above.
+        if str(dimension.get_block_at(x, y, z).type) == "minecraft:farmland":
+            y += 1
         count = sow_nearby(
             dimension,
             player.inventory,
