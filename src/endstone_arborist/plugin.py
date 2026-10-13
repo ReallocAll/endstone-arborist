@@ -362,6 +362,10 @@ class ArboristPlugin(Plugin):
             on_planted=lambda bx, by, bz: controller.on_block_change(dimension_id, bx, by, bz),
         )
         if count:
+            # A productive batch can continue at the 5-tick cooldown even if
+            # the player stands still. Empty/protected fields keep the longer
+            # stationary rescan interval to avoid repeated full scans.
+            self._last_sow_scan.pop(player.unique_id, None)
             player.send_tip(f"§aArborist §r| 已自动播种 §a{count} §r格{crop.display_name}")
 
     def _can_build(self, player: Player, op: autoplant.PlaceOp) -> bool:
@@ -763,7 +767,7 @@ class ArboristPlugin(Plugin):
             explicit = prefs.density(player.unique_id)
             effective = explicit or controller.config.default_density
             source = "个人设置" if explicit else "服务器默认"
-            player.send_message(f"Arborist 密度：{_density_label(effective)}（{source}）。")
+            player.send_message(f"Arborist 植树密度：{_density_label(effective)}（{source}）。")
             return True
         wanted = args[0].lower()
         if wanted == "server":
@@ -771,7 +775,7 @@ class ArboristPlugin(Plugin):
             effective = controller.config.default_density
             _preset, scale = self._effective_density(player.unique_id, controller.config)
             controller.set_spacing_scale(player.unique_id, scale)
-            player.send_message(f"Arborist 密度：已恢复跟随服务器默认（{_density_label(effective)}）。")
+            player.send_message(f"Arborist 植树密度：已恢复跟随服务器默认（{_density_label(effective)}）。")
             return True
         if wanted not in DENSITY_PRESETS:
             player.send_error_message("用法：/arb density <compact|default|sparse|server>")
@@ -779,7 +783,7 @@ class ArboristPlugin(Plugin):
         prefs.set_density(player.unique_id, wanted)
         _preset, scale = self._effective_density(player.unique_id, controller.config)
         controller.set_spacing_scale(player.unique_id, scale)
-        player.send_message(f"Arborist 密度：已设置为{_density_label(wanted)}。")
+        player.send_message(f"Arborist 植树密度：已设置为{_density_label(wanted)}。")
         return True
 
     def _admin_reload(self, sender: CommandSender) -> bool:
@@ -830,7 +834,7 @@ class ArboristPlugin(Plugin):
         player.send_message(
             f"Arborist：自动播种={'§a开启' if sowing else '§e关闭'}§r，"
             f"自动植树={'§a开启' if enabled else '§e关闭'}§r，"
-            f"密度={_density_label(effective)}（{'个人设置' if explicit else '服务器默认'}），"
+            f"植树密度={_density_label(effective)}（{'个人设置' if explicit else '服务器默认'}），"
             f"领地保护={_protection_label(protection)}，Spark TPS={tps_text}。"
         )
 

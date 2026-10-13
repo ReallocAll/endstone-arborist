@@ -18,6 +18,7 @@ def test_default_configuration_preserves_existing_values():
     assert config.sow_radius == 4
     assert config.sow_max_per_batch == 8
     assert config.sow_cooldown == 5
+    assert ArboristConfig.from_mapping({"sow-cooldown": 10}).sow_cooldown == 10
     assert not config.warnings
 
 

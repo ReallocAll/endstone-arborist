@@ -13,7 +13,7 @@ Players can independently enable crop sowing on vacant farmland (`/arb sow on`) 
 - Spark five-second TPS safety gate through Endstone PlaceholderAPI; unavailable or low TPS pauses planting.
 - Read-only Territory claim integration with fail-closed protection when claim data cannot be trusted.
 - Chinese player-facing messages and Endstone command suggestions.
- 
+
 ## Installation
 
 Download a wheel from the CI build artifacts, or build one locally. Place **one** `endstone_arborist-*.whl` in the BDS server's `plugins/` directory and restart Endstone. Arborist supports Python 3.11 or newer and requires Endstone 0.11 or newer. The Endstone installation must provide a native wheel for the selected Python version. As of October 2026, Python 3.15 support has been verified for Arborist's pure-Python code and wheel, but the public Endstone release matrix does not yet provide a `cp315` wheel.
@@ -55,7 +55,7 @@ The plugin creates `plugins/arborist/config.toml` on first launch. Existing conf
 | `autoplant-cooldown` | `10` | Minimum ticks between tree planting batches. |
 | `sow-radius` | `4` | Radius of the crop search (1–6 blocks). |
 | `sow-max-per-batch` | `8` | Maximum crops sown per batch (1–16). |
-| `sow-cooldown` | `5` | Minimum ticks between crop sowing attempts. |
+| `sow-cooldown` | `5` | Minimum ticks between crop sowing batches; after a productive batch, the next may begin 5 ticks later. |
 | `default-density` | `"default"` | Server-wide density preset. |
 | `spacing-scale` | `1.0` | Global spacing multiplier. |
 | `min-tps` | `19.0` | Minimum accepted Spark TPS. |
