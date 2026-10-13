@@ -16,3 +16,11 @@ def test_legacy_enabled_migration_and_persistence(tmp_path):
     assert persisted["enabled"]["other-id"]
     assert "user-id" not in persisted["density"]
     assert not PlayerPreferences(tmp_path / "new.json").enabled("new-player")
+    assert not settings.sowing_enabled("user-id")
+    settings.set_sowing_enabled("user-id", True)
+    fresh = PlayerPreferences(path)
+    fresh.load()
+    assert fresh.sowing_enabled("user-id")
+    assert not fresh.sowing_enabled("other-id")
+    fresh.set_sowing_enabled("user-id", False)
+    assert not PlayerPreferences(path).sowing_enabled("user-id")

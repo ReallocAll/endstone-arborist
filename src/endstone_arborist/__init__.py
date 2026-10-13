@@ -1,4 +1,4 @@
-"""Arborist: an automatic tree planting assistant for Endstone servers.
+"""Arborist: automatic crop sowing and tree planting for Endstone servers.
 
 The package exposes one plugin class; everything else is an implementation detail that other
 plugins should not depend on.

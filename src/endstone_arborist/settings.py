@@ -32,6 +32,7 @@ DENSITY_PRESETS = frozenset({"compact", "default", "sparse"})
 class Preferences:
     enabled: dict[str, bool] = field(default_factory=dict)
     density: dict[str, str] = field(default_factory=dict)
+    sowing: dict[str, bool] = field(default_factory=dict)
     corrupt: bool = False
     notes: tuple[str, ...] = ()
 
@@ -50,6 +51,7 @@ class PlayerPreferences:
         self._default_enabled = bool(default_enabled)
         self._enabled: dict[str, bool] = {}
         self._density: dict[str, str] = {}
+        self._sowing: dict[str, bool] = {}
         self._loaded = False
         self._notes: list[str] = []
         self._dirty = False
@@ -84,6 +86,7 @@ class PlayerPreferences:
         self._notes.extend(parsed.notes)
         self._enabled = dict(parsed.enabled)
         self._density = dict(parsed.density)
+        self._sowing = dict(parsed.sowing)
         self._loaded = True
         if parsed.corrupt:
             self._dirty = True
@@ -132,7 +135,19 @@ class PlayerPreferences:
                 continue
             density[key] = preset
 
-        return Preferences(enabled=enabled, density=density, corrupt=corrupt, notes=tuple(notes))
+        sowing_raw = raw.get("sowing", {})
+        if not isinstance(sowing_raw, Mapping):
+            sowing_raw = {}
+            corrupt = True
+            notes.append("preferences.sowing is not an object")
+        sowing: dict[str, bool] = {}
+        for key, value in sowing_raw.items():
+            if isinstance(key, str) and isinstance(value, bool):
+                sowing[key] = value
+            else:
+                notes.append(f"skipped invalid sowing entry for {key!r}")
+
+        return Preferences(enabled=enabled, density=density, sowing=sowing, corrupt=corrupt, notes=tuple(notes))
 
     def enabled(self, player_id: object) -> bool:
         if not self._loaded:
@@ -152,6 +167,22 @@ class PlayerPreferences:
 
     def toggle(self, player_id: object) -> bool:
         return self.set_enabled(player_id, not self.enabled(player_id))
+
+    def sowing_enabled(self, player_id: object) -> bool:
+        if not self._loaded:
+            self.load()
+        return self._sowing.get(_as_uuid_key(player_id), False)
+
+    def set_sowing_enabled(self, player_id: object, value: bool) -> bool:
+        if not self._loaded:
+            self.load()
+        flag = bool(value)
+        key = _as_uuid_key(player_id)
+        if self._sowing.get(key, False) != flag:
+            self._sowing[key] = flag
+            self._dirty = True
+            self.save()
+        return flag
 
     def density(self, player_id: object) -> str | None:
         """Return the player's explicit density preset, or ``None`` to inherit the server default."""
@@ -185,7 +216,7 @@ class PlayerPreferences:
         try:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             payload = json.dumps(
-                {"enabled": self._enabled, "density": self._density},
+                {"enabled": self._enabled, "density": self._density, "sowing": self._sowing},
                 indent=2,
                 sort_keys=True,
             )
@@ -217,4 +248,4 @@ class PlayerPreferences:
     def snapshot(self) -> dict[str, object]:
         if not self._loaded:
             self.load()
-        return {"enabled": dict(self._enabled), "density": dict(self._density)}
+        return {"enabled": dict(self._enabled), "density": dict(self._density), "sowing": dict(self._sowing)}

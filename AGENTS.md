@@ -1,9 +1,10 @@
 # Arborist development notes
 
-- Keep the Endstone entry point `endstone_arborist:ArboristPlugin` and command names stable; preserve UUID preferences and old `config.toml` keys.
+- Keep the Endstone entry point `endstone_arborist:ArboristPlugin` stable; use `/arb tree ...` and `/arb sow ...` without old command aliases. Preserve UUID preferences and old `config.toml` keys.
 - All Endstone objects and PAPI parsing stay on the BDS main thread. The `ArboristPlanner` worker only receives immutable Python snapshot data; stale generations must be discarded.
 - Enforce Territory protection again at commit time. Never bypass it for faster planting; an unavailable adapter fails closed.
 - Avoid full replans on each movement event; preserve the rolling-plan and prefetch semantics.
+- Keep crop sowing separate from tree planning: only empty farmland, bounded main-thread reads, debit before write, verify/roll back on failure, Territory permission check before every placement. Sowing is individually opt-in and Survival-only.
 - Preserve the GPL-3.0-only license and validate third-party license obligations before copying code or assets.
 - Support Python 3.11+ and test 3.11 through 3.15. Until Endstone publishes a `cp315` wheel, 3.15 CI must test the pure-Python layer and wheel without claiming native BDS integration.
 - Use `uv sync --extra dev`, `uv run ruff check .`, `uv run pytest`, and `uv build --wheel` before submitting changes. Verify wheel metadata, the `endstone` entry point, and the bundled `config.toml`.
