@@ -67,9 +67,8 @@ class ArboristPlugin(Plugin):
             "usages": [
                 "/arborist",
                 "/arborist <status|reload>",
-                "/arborist <tree> [on|off|status]",
+                "/arborist <tree|sow> [on|off|status]",
                 "/arborist <tree> <density> [compact|default|sparse|server]",
-                "/arborist <sow> [on|off|status]",
             ],
             "aliases": ["arb"],
             "permissions": ["arborist.command.arborist"],

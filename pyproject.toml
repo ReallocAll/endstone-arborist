@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "endstone-arborist"
-version = "0.4.0"
+version = "0.4.1"
 description = "Automatic crop sowing and tree planting for Endstone servers"
 readme = "README.md"
 license = "GPL-3.0-only"

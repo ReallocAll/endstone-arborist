@@ -6,6 +6,8 @@ Players can independently enable crop sowing on vacant farmland (`/arb sow on`) 
 
 ## Features
 
+- v0.4.1 fixes duplicate Endstone enum registration warnings by sharing the tree/sow action overload. Player commands and completion remain unchanged.
+
 - Opt-in automatic sowing for wheat, carrots, potatoes and beetroot on vacant farmland; disabled by default.
 - Supports eight tree species, including 2×2 dark oak planting.
 - Per-player enable/disable state and compact/default/sparse density preferences, persisted by UUID.

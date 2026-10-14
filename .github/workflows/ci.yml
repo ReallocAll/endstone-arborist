@@ -50,7 +50,7 @@ jobs:
           from zipfile import ZipFile
 
           dist = metadata.distribution("endstone-arborist")
-          assert dist.version == "0.4.0"
+          assert dist.version == "0.4.1"
           assert dist.metadata["Requires-Python"] == ">=3.11"
           entry = [ep for ep in dist.entry_points if ep.group == "endstone" and ep.name == "arborist"]
           assert len(entry) == 1 and entry[0].value == "endstone_arborist:ArboristPlugin"
