@@ -34,6 +34,6 @@ def test_arborist_command_overloads_register_distinct_enums():
     short_enums = [
         "Arborist" + "".join(word.title() for word in literal.split("|"))
         for usage in usages
-        for literal in re.findall(r"[<\\[]([a-z]+(?:\\|[a-z]+)*)[>\\]]", usage)
+        for literal in re.findall(r"[<\[]([a-z|]+)[>\]]", usage)
     ]
     assert all(n == 1 for n in Counter(short_enums).values()), short_enums
