@@ -67,8 +67,8 @@ class ArboristPlugin(Plugin):
             "usages": [
                 "/arborist",
                 "/arborist <status|reload>",
-                "/arborist <tree|sow> [on|off|status]",
-                "/arborist <tree> <density> [compact|default|sparse|server]",
+                "/arborist <tree> [on|off|status|density] [compact|default|sparse|server]",
+                "/arborist <sow> [on|off|status]",
             ],
             "aliases": ["arb"],
             "permissions": ["arborist.command.arborist"],
@@ -672,6 +672,14 @@ class ArboristPlugin(Plugin):
         if sub == "tree":
             tree_args = args[1:]
             action = tree_args[0].lower() if tree_args else "status"
+            # The native grammar accepts any last argument after a tree action.
+            # Keep it only for density; reject nonsensical forms such as
+            # "tree on compact" rather than silently ignoring the final argument.
+            if len(tree_args) > (2 if action == "density" else 1):
+                sender.send_error_message(
+                    "用法：/arb tree [on|off|status] 或 /arb tree density [compact|default|sparse|server]"
+                )
+                return True
             if action == "status":
                 enabled = prefs.enabled(sender.unique_id)
                 explicit = prefs.density(sender.unique_id)
