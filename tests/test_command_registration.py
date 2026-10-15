@@ -49,7 +49,8 @@ def test_arborist_first_argument_is_disjoint_across_overloads():
         if len(usage.split()) > 1
     ]
     for index, group in enumerate(groups):
-        assert not group.intersection().union(*groups[:index], *groups[index + 1:])
+        others = set().union(*(groups[:index] + groups[index + 1:]))
+        assert group.isdisjoint(others), (group, others)
 
 
 def _accepts(usage: str, command: str) -> bool:
